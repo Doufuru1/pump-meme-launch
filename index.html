@@ -59,6 +59,21 @@
         .section-tab { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; background: transparent; color: var(--text-dim); transition: all 0.2s; font-family: inherit; }
         .section-tab.active { background: var(--accent); color: #000; }
         .token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .project-list { display: flex; flex-direction: column; gap: 8px; }
+        .project-row { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; }
+        .project-row:hover { background: var(--bg-hover); border-color: var(--border-light); }
+        .project-row-img { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 2px solid var(--border); }
+        .project-row-info { flex: 1; min-width: 0; }
+        .project-row-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+        .project-row-meta { font-size: 12px; color: var(--text-dimmer); }
+        .project-row-stats { display: flex; gap: 24px; text-align: center; }
+        .project-row-stat { min-width: 80px; }
+        .project-row-stat-value { font-size: 14px; font-weight: 700; }
+        .project-row-stat-label { font-size: 11px; color: var(--text-dimmer); margin-top: 2px; }
+        .project-row-price { text-align: right; min-width: 120px; }
+        .project-row-price-value { font-size: 16px; font-weight: 800; }
+        .project-row-change { font-size: 13px; font-weight: 700; }
+        .project-row-chart { width: 80px; height: 36px; }
         .token-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.2s; }
         .token-card:hover { border-color: var(--border-light); transform: translateY(-2px); }
         .token-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -267,7 +282,7 @@
 
         /* Responsive */
         @media (max-width: 1024px) { .token-list-sidebar { display: none; } .detail-layout { flex-direction: column; } .trade-panel { width: 100%; min-width: auto; } .launch-bar { display: none; } }
-        @media (max-width: 768px) { .hero h1 { font-size: 36px; } .hero-stat-row { flex-wrap: wrap; gap: 24px; } .token-grid { grid-template-columns: 1fr; } .detail-layout { flex-direction: column; } .detail-content { flex-direction: column; } .trade-panel { width: 100%; } .profile-header { flex-direction: column; text-align: center; } .refer-stats-grid { grid-template-columns: 1fr; } .nav-menu { display: none; } }
+        @media (max-width: 768px) { .project-row-stats { display: none; } .project-row-chart { display: none; } .hero h1 { font-size: 36px; } .hero-stat-row { flex-wrap: wrap; gap: 24px; } .token-grid { grid-template-columns: 1fr; } .detail-layout { flex-direction: column; } .detail-content { flex-direction: column; } .trade-panel { width: 100%; } .profile-header { flex-direction: column; text-align: center; } .refer-stats-grid { grid-template-columns: 1fr; } .nav-menu { display: none; } }
 
         .hidden { display: none !important; }
         .page { display: none; }
@@ -323,6 +338,15 @@
                     </div>
                 </div>
                 <div class="token-grid" id="homeTokenGrid"></div>
+
+                <!-- More Projects -->
+                <div style="margin-top:48px;">
+                    <div class="section-header">
+                        <div class="section-title">All Projects</div>
+                        <div style="font-size:13px;color:var(--text-dim);">${tokens.length} tokens total</div>
+                    </div>
+                    <div class="project-list" id="projectList"></div>
+                </div>
             </div>
         </div>
 
@@ -585,6 +609,33 @@
                     </div>
                 `;
             }).join('');
+
+            // Render All Projects list
+            const list = document.getElementById('projectList');
+            if (list) {
+                list.innerHTML = filtered.map(t => {
+                    const isUp = t.priceChange >= 0;
+                    return `
+                        <div class="project-row" onclick="openTokenDetail(${t.id})">
+                            <img class="project-row-img" src="${t.image}" alt="${t.name}">
+                            <div class="project-row-info">
+                                <div class="project-row-name">${t.name} <span style="color:var(--text-dim);font-weight:500;">$${t.symbol}</span></div>
+                                <div class="project-row-meta">Created ${t.created} · ${formatNumber(t.holders)} holders</div>
+                            </div>
+                            <div class="project-row-stats">
+                                <div class="project-row-stat"><div class="project-row-stat-value">$${formatNumber(t.marketCap)}</div><div class="project-row-stat-label">Market Cap</div></div>
+                                <div class="project-row-stat"><div class="project-row-stat-value">$${formatNumber(t.volume24h)}</div><div class="project-row-stat-label">Volume (24h)</div></div>
+                                <div class="project-row-stat"><div class="project-row-stat-value">${t.progress}%</div><div class="project-row-stat-label">Progress</div></div>
+                            </div>
+                            <div class="project-row-chart">${generateMiniChart(t.history, isUp)}</div>
+                            <div class="project-row-price">
+                                <div class="project-row-price-value">$${formatPrice(t.price)}</div>
+                                <div class="project-row-change" style="color:${isUp ? 'var(--green)' : 'var(--red)'};">${isUp ? '+' : ''}${t.priceChange.toFixed(1)}%</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
         }
 
         function setHomeTab(btn, tab) {
