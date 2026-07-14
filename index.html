@@ -1,0 +1,1912 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEPE Launch - MEME 代币发射平台</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23ccff00' width='100' height='100'/%3E%3Cpath d='M35 25 L55 45 L35 65 L40 70 L60 50 L40 30 Z' fill='%23000'/%3E%3C/svg%3E">
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #0a0a0a;
+            --bg-card: #141414;
+            --bg-card-hover: #1a1a1a;
+            --bg-input: #0f0f0f;
+            --border: #2a2a2a;
+            --border-light: #333;
+            --text: #ffffff;
+            --text-dim: #888888;
+            --text-dimmer: #555555;
+            --accent: #ccff00;
+            --accent-dark: #a3cc00;
+            --accent-glow: rgba(204, 255, 0, 0.15);
+            --red: #ff4444;
+            --green: #44ff88;
+            --orange: #ffaa00;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* 导航栏 */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            z-index: 1000;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+            cursor: pointer;
+        }
+
+        .nav-logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-logo-icon::after {
+            content: '';
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 14px solid #000;
+            transform: rotate(-15deg);
+        }
+
+        .nav-logo span { color: var(--accent); }
+
+        .nav-center {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 6px;
+        }
+
+        .nav-tab {
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dim);
+        }
+
+        .nav-tab.active {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .nav-tab:hover:not(.active) { color: var(--text); }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-connect {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .search-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 16px;
+            color: var(--text);
+            font-size: 13px;
+            width: 200px;
+            outline: none;
+            transition: border 0.2s;
+            font-family: inherit;
+        }
+
+        .search-box:focus { border-color: var(--accent); }
+        .search-box::placeholder { color: var(--text-dimmer); }
+
+        /* 主布局 */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            padding-top: 60px;
+        }
+
+        /* 左侧列表 */
+        .token-list {
+            width: 360px;
+            min-width: 360px;
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            background: var(--bg);
+        }
+
+        .token-list-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--bg);
+            z-index: 10;
+        }
+
+        .token-list-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .token-sort {
+            font-size: 12px;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .token-card {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .token-card:hover { background: var(--bg-card-hover); }
+        .token-card.active {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+        }
+
+        .token-img {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+        }
+
+        .token-info { flex: 1; min-width: 0; }
+
+        .token-name-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .token-name {
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .token-symbol {
+            font-size: 12px;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .token-meta {
+            font-size: 11px;
+            color: var(--text-dimmer);
+            display: flex;
+            gap: 8px;
+        }
+
+        .token-price-area {
+            text-align: right;
+        }
+
+        .token-price {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .token-change {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .token-change.up { color: var(--green); }
+        .token-change.down { color: var(--red); }
+
+        .mini-chart {
+            width: 60px;
+            height: 30px;
+        }
+
+        /* 右侧详情 */
+        .token-detail {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-header {
+            padding: 24px 32px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .detail-img {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            object-fit: cover;
+            border: 2px solid var(--border);
+        }
+
+        .detail-title-area { flex: 1; }
+
+        .detail-name {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-symbol {
+            font-size: 14px;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .detail-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--accent);
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            font-family: inherit;
+        }
+
+        .btn-buy {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-buy:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-sell {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-sell:hover { border-color: var(--red); color: var(--red); }
+
+        .detail-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-box {
+            background: var(--bg);
+            padding: 16px 24px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .stat-value.accent { color: var(--accent); }
+        .stat-value.green { color: var(--green); }
+        .stat-value.red { color: var(--red); }
+
+        .detail-content {
+            display: flex;
+            flex: 1;
+            gap: 1px;
+            background: var(--border);
+        }
+
+        .chart-section {
+            flex: 1;
+            background: var(--bg);
+            padding: 24px 32px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-price {
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .chart-change {
+            font-size: 16px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            background: rgba(68, 255, 136, 0.1);
+            color: var(--green);
+        }
+
+        .chart-timeframes {
+            display: flex;
+            gap: 4px;
+        }
+
+        .timeframe-btn {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .timeframe-btn:hover { color: var(--text); }
+        .timeframe-btn.active {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .chart-container {
+            flex: 1;
+            min-height: 300px;
+            position: relative;
+        }
+
+        .trade-section {
+            width: 360px;
+            min-width: 360px;
+            background: var(--bg);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .trade-tabs {
+            display: flex;
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .trade-tab {
+            flex: 1;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .trade-tab.active {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .trade-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .trade-label {
+            font-size: 13px;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .trade-input-box {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: border 0.2s;
+        }
+
+        .trade-input-box:focus-within { border-color: var(--accent); }
+
+        .trade-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 700;
+            outline: none;
+            font-family: inherit;
+            width: 100%;
+        }
+
+        .trade-input::placeholder { color: var(--text-dimmer); }
+
+        .trade-token-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .trade-token-badge img {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .trade-hint {
+            font-size: 12px;
+            color: var(--text-dimmer);
+            text-align: right;
+        }
+
+        .btn-trade {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-trade-buy {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .btn-trade-buy:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-trade-sell {
+            background: var(--red);
+            color: #fff;
+        }
+
+        .btn-trade-sell:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3);
+        }
+
+        .trade-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .trade-info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .trade-info-label { color: var(--text-dim); }
+        .trade-info-value { font-weight: 600; }
+
+        .progress-section {
+            padding: 16px 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-bg {
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--accent);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        /* 评论区 */
+        .comments-section {
+            background: var(--bg);
+            padding: 24px 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .comments-header {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .comment-input-area {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .comment-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #000;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .comment-input-box {
+            flex: 1;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .comment-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .comment-input::placeholder { color: var(--text-dimmer); }
+
+        .btn-comment {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .comment-item {
+            display: flex;
+            gap: 12px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comment-body { flex: 1; }
+
+        .comment-author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .comment-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .comment-time {
+            font-size: 12px;
+            color: var(--text-dimmer);
+        }
+
+        .comment-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-dim);
+        }
+
+        /* 底部发射按钮 */
+        .launch-bar {
+            position: fixed;
+            bottom: 0;
+            left: 360px;
+            right: 0;
+            padding: 16px 32px;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .btn-launch {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 16px 48px;
+            border-radius: 14px;
+            font-size: 18px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-launch:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .btn-launch svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 弹窗 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-header {
+            padding: 24px 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-size: 24px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .modal-body { padding: 24px; }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
+            font-family: inherit;
+        }
+
+        .form-input:focus { border-color: var(--accent); }
+        .form-input::placeholder { color: var(--text-dimmer); }
+
+        .form-textarea {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: border 0.2s;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-textarea:focus { border-color: var(--accent); }
+        .form-textarea::placeholder { color: var(--text-dimmer); }
+
+        .upload-area {
+            width: 100%;
+            height: 160px;
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--bg-input);
+        }
+
+        .upload-area:hover { border-color: var(--accent); }
+
+        .upload-area svg {
+            width: 40px;
+            height: 40px;
+            color: var(--text-dim);
+        }
+
+        .upload-text {
+            font-size: 14px;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .upload-hint {
+            font-size: 12px;
+            color: var(--text-dimmer);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            border: none;
+            background: var(--accent);
+            color: #000;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .form-hint {
+            font-size: 12px;
+            color: var(--text-dimmer);
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        .form-hint a { color: var(--accent); text-decoration: none; }
+
+        /*  holders 列表 */
+        .holders-section {
+            background: var(--bg);
+            padding: 24px 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .holders-header {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .holders-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .holders-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 11px;
+            color: var(--text-dimmer);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .holders-table td {
+            padding: 12px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .holders-table tr:hover td {
+            background: var(--bg-card);
+        }
+
+        .holder-rank {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .holder-rank.top {
+            background: var(--accent);
+            color: #000;
+        }
+
+        .holder-address {
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .holder-pct { font-weight: 700; }
+        .holder-pct.accent { color: var(--accent); }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dimmer); }
+
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .token-list { display: none; }
+            .launch-bar { left: 0; }
+            .trade-section { width: 300px; min-width: 300px; }
+        }
+
+        @media (max-width: 768px) {
+            .main-container { flex-direction: column; }
+            .trade-section { width: 100%; min-width: auto; }
+            .detail-content { flex-direction: column; }
+            .launch-bar { left: 0; }
+            .nav-center { display: none; }
+        }
+
+        /* 加载动画 */
+        .loading-skeleton {
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--border) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* 交易记录 */
+        .tx-history {
+            background: var(--bg);
+            padding: 24px 32px;
+            border-top: 1px solid var(--border);
+        }
+
+        .tx-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .tx-type {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tx-type-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .tx-type-badge.buy {
+            background: rgba(68, 255, 136, 0.1);
+            color: var(--green);
+        }
+
+        .tx-type-badge.sell {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--red);
+        }
+
+        .tx-amount { font-weight: 700; }
+        .tx-amount.buy { color: var(--green); }
+        .tx-amount.sell { color: var(--red); }
+
+        .tx-time { color: var(--text-dimmer); font-size: 12px; }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav>
+        <div class="nav-logo" onclick="showHome()">
+            <div class="nav-logo-icon"></div>
+            <div>PEPE <span>Launch</span></div>
+        </div>
+        <div class="nav-center">
+            <div class="nav-tab active" data-tab="trending"> trending</div>
+            <div class="nav-tab" data-tab="new">New</div>
+            <div class="nav-tab" data-tab="top">Top</div>
+        </div>
+        <div class="nav-right">
+            <input type="text" class="search-box" placeholder="Search token..." id="searchInput">
+            <button class="btn-connect" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+        </div>
+    </nav>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <!-- 左侧代币列表 -->
+        <div class="token-list" id="tokenList">
+            <div class="token-list-header">
+                <div class="token-list-title">Token List</div>
+                <div class="token-sort">Sort by Market Cap</div>
+            </div>
+            <!-- 动态生成 -->
+        </div>
+
+        <!-- 右侧详情 -->
+        <div class="token-detail" id="tokenDetail">
+            <!-- 动态生成 -->
+        </div>
+    </div>
+
+    <!-- 底部发射按钮 -->
+    <div class="launch-bar" id="launchBar">
+        <button class="btn-launch" onclick="openLaunchModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            Launch Your Token
+        </button>
+    </div>
+
+    <!-- 创建代币弹窗 -->
+    <div class="modal-overlay" id="launchModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Launch Your Token</div>
+                <button class="modal-close" onclick="closeLaunchModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <div class="upload-text">Upload Token Image</div>
+                    <div class="upload-hint">PNG, JPG, GIF up to 5MB</div>
+                </div>
+                <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFileUpload(event)">
+                <div id="uploadPreview" style="display:none; text-align:center; margin-bottom:16px;">
+                    <img id="previewImg" style="width:120px; height:120px; border-radius:16px; object-fit:cover; border:2px solid var(--border);">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Token Name</label>
+                    <input type="text" class="form-input" id="tokenName" placeholder="e.g., Pepe Coin">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Token Symbol</label>
+                    <input type="text" class="form-input" id="tokenSymbol" placeholder="e.g., PEPE">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-textarea" id="tokenDesc" placeholder="Tell us about your token..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Initial Buy (Optional)</label>
+                    <div class="trade-input-box">
+                        <input type="number" class="trade-input" id="initialBuy" placeholder="0.0">
+                        <div class="trade-token-badge">ETH</div>
+                    </div>
+                </div>
+
+                <button class="btn-submit" onclick="createToken()">Launch Token</button>
+                <div class="form-hint">
+                    Launching a token costs 0.02 ETH. The token will be created on the bonding curve and can be traded immediately.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 数据 =====
+        const tokens = [
+            {
+                id: 1,
+                name: "PepeCoin",
+                symbol: "PEPE",
+                image: "https://picsum.photos/seed/pepe1/200/200",
+                price: 0.00042,
+                priceChange: 156.7,
+                marketCap: 4200000,
+                volume24h: 890000,
+                holders: 3420,
+                liquidity: 89000,
+                progress: 78,
+                description: "The most memeable memecoin in existence. The dogs have had their day, it's time for Pepe to take reign.",
+                created: "2 hours ago",
+                history: generateChartData(100, 0.00042),
+                comments: [
+                    { name: "CryptoWhale", time: "5 min ago", text: "This is going to the moon! 🚀" },
+                    { name: "MemeLord", time: "12 min ago", text: "PEPE is the only true memecoin." },
+                    { name: "DiamondHands", time: "30 min ago", text: "Just bought 100K more. LFG!" },
+                ],
+                holdersList: [
+                    { address: "0x742d...44e", amount: "12.5M", pct: 12.5 },
+                    { address: "0x8a3f...9b2", amount: "8.2M", pct: 8.2 },
+                    { address: "0x3c9d...1a7", amount: "6.8M", pct: 6.8 },
+                ],
+                txs: [
+                    { type: "buy", amount: "+2.5 ETH", value: "$5,800", time: "2 min ago" },
+                    { type: "sell", amount: "-1.2 ETH", value: "$2,900", time: "5 min ago" },
+                    { type: "buy", amount: "+5.0 ETH", value: "$11,600", time: "8 min ago" },
+                ]
+            },
+            {
+                id: 2,
+                name: "DogeRocket",
+                symbol: "DOGR",
+                image: "https://picsum.photos/seed/doge2/200/200",
+                price: 0.00018,
+                priceChange: -23.4,
+                marketCap: 1800000,
+                volume24h: 420000,
+                holders: 1850,
+                liquidity: 45000,
+                progress: 45,
+                description: "Doge to the moon! Community-driven memecoin with real utility.",
+                created: "5 hours ago",
+                history: generateChartData(80, 0.00018),
+                comments: [
+                    { name: "DogeLover", time: "10 min ago", text: "HODLing since launch!" },
+                ],
+                holdersList: [
+                    { address: "0x1234...5678", amount: "8.1M", pct: 8.1 },
+                    { address: "0xabcd...ef01", amount: "5.4M", pct: 5.4 },
+                ],
+                txs: [
+                    { type: "sell", amount: "-0.8 ETH", value: "$1,900", time: "1 min ago" },
+                    { type: "buy", amount: "+1.5 ETH", value: "$3,500", time: "6 min ago" },
+                ]
+            },
+            {
+                id: 3,
+                name: "ShibaMoon",
+                symbol: "SHIBM",
+                image: "https://picsum.photos/seed/shiba3/200/200",
+                price: 0.00089,
+                priceChange: 342.1,
+                marketCap: 8900000,
+                volume24h: 2100000,
+                holders: 5600,
+                liquidity: 210000,
+                progress: 92,
+                description: "Shiba Inu going to the moon. The people's cryptocurrency.",
+                created: "1 hour ago",
+                history: generateChartData(150, 0.00089),
+                comments: [
+                    { name: "MoonBoi", time: "3 min ago", text: "92% to bonding curve complete!" },
+                    { name: "WhaleAlert", time: "15 min ago", text: "Big buys coming in 👀" },
+                ],
+                holdersList: [
+                    { address: "0x9999...8888", amount: "15.2M", pct: 15.2 },
+                    { address: "0x7777...6666", amount: "9.8M", pct: 9.8 },
+                ],
+                txs: [
+                    { type: "buy", amount: "+10.0 ETH", value: "$23,200", time: "just now" },
+                    { type: "buy", amount: "+3.5 ETH", value: "$8,100", time: "3 min ago" },
+                ]
+            },
+            {
+                id: 4,
+                name: "WojakCoin",
+                symbol: "WOJAK",
+                image: "https://picsum.photos/seed/wojak4/200/200",
+                price: 0.00006,
+                priceChange: 89.3,
+                marketCap: 600000,
+                volume24h: 120000,
+                holders: 890,
+                liquidity: 15000,
+                progress: 23,
+                description: "I know that feel bro. The most relatable memecoin.",
+                created: "8 hours ago",
+                history: generateChartData(60, 0.00006),
+                comments: [],
+                holdersList: [],
+                txs: []
+            },
+            {
+                id: 5,
+                name: "ChadCoin",
+                symbol: "CHAD",
+                image: "https://picsum.photos/seed/chad5/200/200",
+                price: 0.0012,
+                priceChange: -5.2,
+                marketCap: 12000000,
+                volume24h: 3400000,
+                holders: 7800,
+                liquidity: 340000,
+                progress: 100,
+                description: "Giga Chad approved. The alpha memecoin.",
+                created: "12 hours ago",
+                history: generateChartData(120, 0.0012),
+                comments: [
+                    { name: "GigaChad", time: "1 min ago", text: "Bonding curve complete! Now on DEX 🎉" },
+                ],
+                holdersList: [
+                    { address: "0x1111...2222", amount: "22.1M", pct: 22.1 },
+                ],
+                txs: [
+                    { type: "sell", amount: "-5.0 ETH", value: "$11,600", time: "2 min ago" },
+                ]
+            },
+            {
+                id: 6,
+                name: "BoboBear",
+                symbol: "BOBO",
+                image: "https://picsum.photos/seed/bobo6/200/200",
+                price: 0.00034,
+                priceChange: 234.5,
+                marketCap: 3400000,
+                volume24h: 780000,
+                holders: 2100,
+                liquidity: 78000,
+                progress: 65,
+                description: "Bobo the bear. Bear market? What bear market?",
+                created: "3 hours ago",
+                history: generateChartData(90, 0.00034),
+                comments: [],
+                holdersList: [],
+                txs: []
+            },
+            {
+                id: 7,
+                name: "MiladyCoin",
+                symbol: "MILADY",
+                image: "https://picsum.photos/seed/milady7/200/200",
+                price: 0.00055,
+                priceChange: 67.8,
+                marketCap: 5500000,
+                volume24h: 1200000,
+                holders: 3100,
+                liquidity: 120000,
+                progress: 82,
+                description: "Milady maker memecoin. Aesthetic and based.",
+                created: "4 hours ago",
+                history: generateChartData(110, 0.00055),
+                comments: [],
+                holdersList: [],
+                txs: []
+            },
+            {
+                id: 8,
+                name: "BonkInu",
+                symbol: "BONK",
+                image: "https://picsum.photos/seed/bonk8/200/200",
+                price: 0.00022,
+                priceChange: -12.3,
+                marketCap: 2200000,
+                volume24h: 560000,
+                holders: 1680,
+                liquidity: 56000,
+                progress: 52,
+                description: "BONK! The solana dog that bonked its way to the top.",
+                created: "6 hours ago",
+                history: generateChartData(70, 0.00022),
+                comments: [],
+                holdersList: [],
+                txs: []
+            },
+        ];
+
+        let selectedToken = tokens[0];
+        let chartInstance = null;
+        let isBuyTab = true;
+
+        // 生成图表数据
+        function generateChartData(points, currentPrice) {
+            const data = [];
+            let price = currentPrice * 0.5;
+            for (let i = 0; i < points; i++) {
+                const change = (Math.random() - 0.4) * price * 0.1;
+                price += change;
+                if (price < currentPrice * 0.1) price = currentPrice * 0.1;
+                data.push(price);
+            }
+            data[data.length - 1] = currentPrice;
+            return data;
+        }
+
+        // 生成迷你图表 SVG
+        function generateMiniChart(data, isUp) {
+            const width = 60;
+            const height = 30;
+            const max = Math.max(...data);
+            const min = Math.min(...data);
+            const range = max - min || 1;
+            const points = data.map((v, i) => {
+                const x = (i / (data.length - 1)) * width;
+                const y = height - ((v - min) / range) * height;
+                return `${x},${y}`;
+            }).join(' ');
+            const color = isUp ? '#44ff88' : '#ff4444';
+            return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>`;
+        }
+
+        // 格式化数字
+        function formatNumber(n) {
+            if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+            if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+            return n.toString();
+        }
+
+        function formatPrice(p) {
+            if (p < 0.001) return p.toFixed(6);
+            if (p < 0.01) return p.toFixed(5);
+            return p.toFixed(4);
+        }
+
+        // 渲染代币列表
+        function renderTokenList() {
+            const list = document.getElementById('tokenList');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = tokens.filter(t => 
+                t.name.toLowerCase().includes(search) || 
+                t.symbol.toLowerCase().includes(search)
+            );
+            
+            let html = `
+                <div class="token-list-header">
+                    <div class="token-list-title">Token List</div>
+                    <div class="token-sort">${filtered.length} tokens</div>
+                </div>
+            `;
+            
+            filtered.forEach(token => {
+                const isUp = token.priceChange >= 0;
+                const active = selectedToken && selectedToken.id === token.id ? 'active' : '';
+                html += `
+                    <div class="token-card ${active}" onclick="selectToken(${token.id})">
+                        <img class="token-img" src="${token.image}" alt="${token.name}">
+                        <div class="token-info">
+                            <div class="token-name-row">
+                                <div class="token-name">${token.name}</div>
+                                <div class="token-symbol">$${token.symbol}</div>
+                            </div>
+                            <div class="token-meta">MC: $${formatNumber(token.marketCap)}</div>
+                        </div>
+                        <div class="token-price-area">
+                            <div class="token-price">$${formatPrice(token.price)}</div>
+                            <div class="token-change ${isUp ? 'up' : 'down'}">${isUp ? '+' : ''}${token.priceChange.toFixed(1)}%</div>
+                        </div>
+                        <div class="mini-chart">${generateMiniChart(token.history, isUp)}</div>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+
+        // 选择代币
+        function selectToken(id) {
+            selectedToken = tokens.find(t => t.id === id);
+            renderTokenList();
+            renderTokenDetail();
+        }
+
+        // 渲染代币详情
+        function renderTokenDetail() {
+            if (!selectedToken) return;
+            const t = selectedToken;
+            const isUp = t.priceChange >= 0;
+            const detail = document.getElementById('tokenDetail');
+            
+            detail.innerHTML = `
+                <div class="detail-header">
+                    <img class="detail-img" src="${t.image}" alt="${t.name}">
+                    <div class="detail-title-area">
+                        <div class="detail-name">
+                            ${t.name}
+                            ${t.progress >= 100 ? '<div class="detail-badge">✓ Bonded</div>' : `<div class="detail-badge">${t.progress}% to Bond</div>`}
+                        </div>
+                        <div class="detail-symbol">$${t.symbol} · Created ${t.created}</div>
+                    </div>
+                    <div class="detail-actions">
+                        <button class="btn-action btn-buy" onclick="scrollToTrade()">Buy</button>
+                        <button class="btn-action btn-sell" onclick="scrollToTrade()">Sell</button>
+                    </div>
+                </div>
+
+                <div class="detail-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Market Cap</div>
+                        <div class="stat-value">$${formatNumber(t.marketCap)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Volume (24h)</div>
+                        <div class="stat-value accent">$${formatNumber(t.volume24h)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Holders</div>
+                        <div class="stat-value">${formatNumber(t.holders)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Liquidity</div>
+                        <div class="stat-value">$${formatNumber(t.liquidity)}</div>
+                    </div>
+                </div>
+
+                <div class="detail-content">
+                    <div class="chart-section">
+                        <div class="chart-header">
+                            <div>
+                                <div class="chart-price">$${formatPrice(t.price)}</div>
+                                <div class="chart-change ${isUp ? '' : ''}" style="color: ${isUp ? '#44ff88' : '#ff4444'}; display:inline-block; margin-top:4px;">
+                                    ${isUp ? '+' : ''}${t.priceChange.toFixed(2)}%
+                                </div>
+                            </div>
+                            <div class="chart-timeframes">
+                                <button class="timeframe-btn active">1m</button>
+                                <button class="timeframe-btn">5m</button>
+                                <button class="timeframe-btn">15m</button>
+                                <button class="timeframe-btn">1h</button>
+                                <button class="timeframe-btn">4h</button>
+                                <button class="timeframe-btn">1d</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="trade-section">
+                        <div class="trade-tabs">
+                            <button class="trade-tab ${isBuyTab ? 'active' : ''}" onclick="setTradeTab(true)">Buy</button>
+                            <button class="trade-tab ${!isBuyTab ? 'active' : ''}" onclick="setTradeTab(false)">Sell</button>
+                        </div>
+
+                        <div class="trade-input-group">
+                            <div class="trade-label">${isBuyTab ? 'You pay' : 'You sell'}</div>
+                            <div class="trade-input-box">
+                                <input type="number" class="trade-input" placeholder="0.0" id="tradeAmount">
+                                <div class="trade-token-badge">ETH</div>
+                            </div>
+                            <div class="trade-hint">Balance: 2.45 ETH</div>
+                        </div>
+
+                        <div class="trade-input-group">
+                            <div class="trade-label">${isBuyTab ? 'You receive' : 'You receive'}</div>
+                            <div class="trade-input-box">
+                                <input type="text" class="trade-input" placeholder="0" readonly id="receiveAmount">
+                                <div class="trade-token-badge">
+                                    <img src="${t.image}"> $${t.symbol}
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn-trade ${isBuyTab ? 'btn-trade-buy' : 'btn-trade-sell'}" onclick="executeTrade()">
+                            ${isBuyTab ? 'Buy' : 'Sell'} $${t.symbol}
+                        </button>
+
+                        <div class="trade-info">
+                            <div class="trade-info-row">
+                                <span class="trade-info-label">Price Impact</span>
+                                <span class="trade-info-value">&lt; 1%</span>
+                            </div>
+                            <div class="trade-info-row">
+                                <span class="trade-info-label">Slippage</span>
+                                <span class="trade-info-value">1.5%</span>
+                            </div>
+                            <div class="trade-info-row">
+                                <span class="trade-info-label">Network Fee</span>
+                                <span class="trade-info-value">~$2.50</span>
+                            </div>
+                        </div>
+
+                        <div class="progress-section">
+                            <div class="progress-label">
+                                <span>Bonding Curve Progress</span>
+                                <span style="color: var(--accent);">${t.progress}%</span>
+                            </div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" style="width: ${t.progress}%"></div>
+                            </div>
+                            <div class="trade-hint" style="margin-top:8px; text-align:left;">
+                                ${t.progress >= 100 ? 'Bonding curve complete! Token is now tradable on DEX.' : `When market cap reaches $${formatNumber(t.marketCap * (100 / t.progress))}, liquidity will be deposited to DEX.`}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                ${t.holdersList.length > 0 ? `
+                <div class="holders-section">
+                    <div class="holders-header">Top Holders</div>
+                    <table class="holders-table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Address</th>
+                                <th>Amount</th>
+                                <th>Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${t.holdersList.map((h, i) => `
+                                <tr>
+                                    <td><div class="holder-rank ${i < 3 ? 'top' : ''}">${i + 1}</div></td>
+                                    <td class="holder-address">${h.address}</td>
+                                    <td>${h.amount}</td>
+                                    <td class="holder-pct ${i === 0 ? 'accent' : ''}">${h.pct}%</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                ` : ''}
+
+                ${t.txs.length > 0 ? `
+                <div class="tx-history">
+                    <div class="holders-header">Recent Transactions</div>
+                    ${t.txs.map(tx => `
+                        <div class="tx-item">
+                            <div class="tx-type">
+                                <span class="tx-type-badge ${tx.type}">${tx.type.toUpperCase()}</span>
+                                <span class="tx-amount ${tx.type}">${tx.amount}</span>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight:600;">${tx.value}</div>
+                                <div class="tx-time">${tx.time}</div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                ` : ''}
+
+                <div class="comments-section">
+                    <div class="comments-header">Comments (${t.comments.length})</div>
+                    <div class="comment-input-area">
+                        <div class="comment-avatar">U</div>
+                        <div class="comment-input-box">
+                            <input type="text" class="comment-input" placeholder="Add a comment..." id="commentInput">
+                            <button class="btn-comment" onclick="addComment()">Post</button>
+                        </div>
+                    </div>
+                    ${t.comments.length > 0 ? t.comments.map(c => `
+                        <div class="comment-item">
+                            <div class="comment-avatar" style="background: var(--bg-card); color: var(--accent);">${c.name[0]}</div>
+                            <div class="comment-body">
+                                <div class="comment-author">
+                                    <span class="comment-name">${c.name}</span>
+                                    <span class="comment-time">${c.time}</span>
+                                </div>
+                                <div class="comment-text">${c.text}</div>
+                            </div>
+                        </div>
+                    `).join('') : '<div style="color: var(--text-dimmer); font-size: 14px;">No comments yet. Be the first!</div>'}
+                </div>
+            `;
+
+            renderChart(t);
+        }
+
+        // 渲染图表
+        function renderChart(token) {
+            const ctx = document.getElementById('priceChart');
+            if (!ctx) return;
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const labels = token.history.map((_, i) => i);
+            const isUp = token.priceChange >= 0;
+            const color = isUp ? '#44ff88' : '#ff4444';
+            const bgColor = isUp ? 'rgba(68, 255, 136, 0.1)' : 'rgba(255, 68, 68, 0.1)';
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: token.history,
+                        borderColor: color,
+                        backgroundColor: bgColor,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: color,
+                        pointHoverBorderColor: '#fff',
+                        pointHoverBorderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1a1a1a',
+                            borderColor: '#333',
+                            borderWidth: 1,
+                            titleColor: '#888',
+                            bodyColor: '#fff',
+                            bodyFont: { weight: '700' },
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                title: () => '',
+                                label: (ctx) => '$' + formatPrice(ctx.parsed.y)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            display: true,
+                            position: 'right',
+                            grid: {
+                                color: '#1a1a1a',
+                                drawBorder: false,
+                            },
+                            ticks: {
+                                color: '#555',
+                                font: { size: 11 },
+                                callback: (v) => '$' + formatPrice(v)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 交易标签切换
+        function setTradeTab(buy) {
+            isBuyTab = buy;
+            renderTokenDetail();
+        }
+
+        // 滚动到交易区
+        function scrollToTrade() {
+            const tradeSection = document.querySelector('.trade-section');
+            if (tradeSection) tradeSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 执行交易（模拟）
+        function executeTrade() {
+            const amount = document.getElementById('tradeAmount').value;
+            if (!amount || parseFloat(amount) <= 0) {
+                alert('Please enter an amount');
+                return;
+            }
+            alert(`${isBuyTab ? 'Buying' : 'Selling'} ${amount} ETH worth of $${selectedToken.symbol}!\n\n(Note: This is a demo interface. Connect to a real contract for live trading.)`);
+        }
+
+        // 添加评论
+        function addComment() {
+            const input = document.getElementById('commentInput');
+            if (!input.value.trim()) return;
+            selectedToken.comments.unshift({
+                name: "You",
+                time: "just now",
+                text: input.value
+            });
+            input.value = '';
+            renderTokenDetail();
+        }
+
+        // 钱包连接
+        async function connectWallet() {
+            const btn = document.getElementById('connectBtn');
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    const shortAddr = accounts[0].slice(0, 6) + '...' + accounts[0].slice(-4);
+                    btn.textContent = shortAddr;
+                    btn.style.background = 'var(--bg-card)';
+                    btn.style.color = 'var(--text)';
+                    btn.style.border = '1px solid var(--border)';
+                } catch (err) {
+                    console.error('Wallet connection failed:', err);
+                    alert('Failed to connect wallet. Please try again.');
+                }
+            } else {
+                alert('Please install MetaMask or another Web3 wallet!');
+            }
+        }
+
+        // 弹窗
+        function openLaunchModal() {
+            document.getElementById('launchModal').classList.add('active');
+        }
+
+        function closeLaunchModal() {
+            document.getElementById('launchModal').classList.remove('active');
+            document.getElementById('tokenName').value = '';
+            document.getElementById('tokenSymbol').value = '';
+            document.getElementById('tokenDesc').value = '';
+            document.getElementById('initialBuy').value = '';
+            document.getElementById('uploadPreview').style.display = 'none';
+            document.getElementById('uploadArea').style.display = 'flex';
+        }
+
+        // 文件上传
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById('previewImg').src = event.target.result;
+                document.getElementById('uploadPreview').style.display = 'block';
+                document.getElementById('uploadArea').style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 创建代币
+        function createToken() {
+            const name = document.getElementById('tokenName').value.trim();
+            const symbol = document.getElementById('tokenSymbol').value.trim().toUpperCase();
+            const desc = document.getElementById('tokenDesc').value.trim();
+            const preview = document.getElementById('previewImg').src;
+            
+            if (!name || !symbol) {
+                alert('Please enter token name and symbol');
+                return;
+            }
+
+            const newToken = {
+                id: tokens.length + 1,
+                name: name,
+                symbol: symbol,
+                image: preview.includes('data:image') ? preview : `https://picsum.photos/seed/${symbol}/200/200`,
+                price: 0.00001,
+                priceChange: 0,
+                marketCap: 0,
+                volume24h: 0,
+                holders: 1,
+                liquidity: 0,
+                progress: 0,
+                description: desc || `A new memecoin: ${name}`,
+                created: "just now",
+                history: generateChartData(50, 0.00001),
+                comments: [],
+                holdersList: [],
+                txs: []
+            };
+
+            tokens.unshift(newToken);
+            selectedToken = newToken;
+            renderTokenList();
+            renderTokenDetail();
+            closeLaunchModal();
+            alert(`🎉 $${symbol} launched successfully! Start sharing your token to attract buyers.`);
+        }
+
+        // 搜索
+        document.getElementById('searchInput').addEventListener('input', renderTokenList);
+
+        // 导航标签
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // 时间框架按钮
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('timeframe-btn')) {
+                document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+            }
+        });
+
+        // 返回首页
+        function showHome() {
+            selectedToken = tokens[0];
+            renderTokenList();
+            renderTokenDetail();
+        }
+
+        // 初始化
+        renderTokenList();
+        renderTokenDetail();
+    </script>
+</body>
+</html>
