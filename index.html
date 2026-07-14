@@ -990,6 +990,12 @@
             navigate(hash);
         });
 
+        // Check initial hash on load
+        const initialHash = window.location.hash.replace('#', '') || 'home';
+        if (initialHash !== 'home') {
+            navigate(initialHash);
+        }
+
         renderHomeTokens();
     </script>
 </body>
